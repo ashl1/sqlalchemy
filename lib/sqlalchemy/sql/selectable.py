@@ -3169,13 +3169,18 @@ class Select(HasPrefixes, HasSuffixes, GenerativeSelect):
             :ref:`correlated_subqueries`
 
         """
-        self._auto_correlate = False
-        if fromclauses and fromclauses[0] is None:
-            self._correlate = ()
-        else:
-            self._correlate = set(self._correlate).union(
-                _interpret_as_from(f) for f in fromclauses)
+        from .util import surface_selectables
 
+        self._auto_correlate = False
+        self._correlate = set()
+        if fromclauses:
+            for clause in fromclauses:
+                if clause is None:
+                    self._correlate = self._correlate.union([None])
+                else:
+                    self._correlate = self._correlate.union(
+                        surface_selectables(_interpret_as_from(clause))
+                    )
     @_generative
     def correlate_except(self, *fromclauses):
         """return a new :class:`.Select` which will omit the given FROM
